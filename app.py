@@ -8,7 +8,19 @@ from moviepy.editor import VideoFileClip
 import numpy as np
 
 
+from flask import Flask, request, jsonify
+from flask_cors import CORS  # Import CORS
+import base64
+import io
+import torch
+from PIL import Image
+import torchvision.transforms as transforms
+
+# Initialize Flask app
 app = Flask(__name__)
+
+# Enable CORS for all domains (for development)
+CORS(app)
 
 import torch
 import torch.nn as nn
@@ -177,7 +189,7 @@ def process_image():
     buffered = io.BytesIO()
     output_image.save(buffered, format="JPEG")
     img_str = base64.b64encode(buffered.getvalue()).decode('utf-8')
-
+    print("done")
     # Return image as base64 string in the response
     return jsonify({'message': 'Image processed successfully', 'image_data': img_str})
 
