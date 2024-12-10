@@ -136,17 +136,23 @@ class ReconstructionLoss(nn.Module):
 model = ReflectionRemovalNet()
 model.load_state_dict(torch.load('model_epoch_100.pth', map_location=torch.device('cpu')))
 model.eval()
+import base64
+import io
+import torch
+from flask import Flask, request, jsonify
+from PIL import Image
+import torchvision.transforms as transforms
 
-# Transformations for input images
+
+# Define any necessary image transformations for input processing
 transform = transforms.Compose([
     transforms.Resize((256, 256)),
     transforms.ToTensor(),
     transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
 ])
 
-# API to process the image or video
 @app.route('/process', methods=['POST'])
-def process_media():
+def process_image():
     if 'file' not in request.files:
         return jsonify({'error': 'No file part'}), 400
 
@@ -154,67 +160,26 @@ def process_media():
     if file.filename == '':
         return jsonify({'error': 'No selected file'}), 400
 
-    # Check if the file is an image or video
-    if file.content_type.startswith('image'):
-        return process_image(file)
-    elif file.content_type.startswith('video'):
-        return process_video(file)
-    else:
-        return jsonify({'error': 'Unsupported file type'}), 400
-
-def process_image(file):
-    # Process the image
-    image = Image.open(file)
+    # Read and process the image
+    image = Image.open(file.stream)
     image = transform(image).unsqueeze(0)  # Add batch dimension
 
+    # Forward pass through the model
     with torch.no_grad():
         output = model(image)
 
-    # Convert the output tensor to an image
-    output_image = output.squeeze().cpu().numpy()  # Convert tensor to numpy array
-    output_image = (output_image * 255).astype(np.uint8)  # Scale back to [0, 255]
-    output_image = Image.fromarray(output_image.transpose(1, 2, 0))  # Convert channels to RGB
+    # Convert the output tensor to an image (convert to numpy and then to PIL image)
+    output_image = output.squeeze().cpu().numpy()
+    output_image = (output_image * 255).astype('uint8')  # Convert to 0-255 range
+    output_image = Image.fromarray(output_image.transpose(1, 2, 0))  # Convert to PIL Image
 
-    # Save the processed image
-    output_image_path = 'processed_image.jpg'
-    output_image.save(output_image_path)
+    # Convert image to base64 for sending back to frontend
+    buffered = io.BytesIO()
+    output_image.save(buffered, format="JPEG")
+    img_str = base64.b64encode(buffered.getvalue()).decode('utf-8')
 
-    return jsonify({
-        'message': 'Image processed successfully',
-        'processed_image_url': output_image_path  # URL or base64 string can be used
-    })
-
-def process_video(file):
-    # Save the video file temporarily
-    video_path = 'input_video.mp4'
-    file.save(video_path)
-
-    # Process video frame by frame
-    processed_video_path = 'processed_video.mp4'
-    video_clip = VideoFileClip(video_path)
-    
-    def process_frame(frame):
-        # Convert the frame to an image and process it through the model
-        image = Image.fromarray(frame)
-        image = transform(image).unsqueeze(0)
-
-        with torch.no_grad():
-            output = model(image)
-
-        # Convert the output tensor to an image
-        output_image = output.squeeze().cpu().numpy()
-        output_image = (output_image * 255).astype(np.uint8)
-        output_frame = output_image.transpose(1, 2, 0)
-        return output_frame
-
-    # Apply the processing function to each frame and write to a new video
-    processed_clip = video_clip.fl_image(process_frame)
-    processed_clip.write_videofile(processed_video_path, codec='libx264')
-
-    return jsonify({
-        'message': 'Video processed successfully',
-        'processed_video_url': processed_video_path  # Return the path to processed video
-    })
+    # Return image as base64 string in the response
+    return jsonify({'message': 'Image processed successfully', 'image_data': img_str})
 
 if __name__ == '__main__':
     app.run(debug=True)

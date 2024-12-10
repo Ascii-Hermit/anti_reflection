@@ -33,14 +33,17 @@
             .then(response => response.json())
             .then(data => {
                 if (data.message === 'Image processed successfully') {
-                    // Assuming you return the image URL or base64-encoded image from backend
+                    // Assuming the server returns base64-encoded image data
                     const processedImageSrc = 'data:image/jpeg;base64,' + data.image_data; 
                     document.getElementById('processed-image').src = processedImageSrc;
                     document.getElementById('processed-image').style.display = 'block';
+                } else {
+                    alert('Error processing image');
                 }
             })
             .catch(error => {
                 console.error('Error processing image:', error);
+                alert('Error processing image');
             });
         }
     </script>
