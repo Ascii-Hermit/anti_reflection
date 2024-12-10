@@ -1,31 +1,48 @@
-document.getElementById('upload-form').addEventListener('submit', function (event) {
-    event.preventDefault();
+// Wait for the document to fully load
+document.addEventListener('DOMContentLoaded', function () {
+    // Set up the form submission handler
+    document.getElementById('uploadForm').addEventListener('submit', function(event) {
+        event.preventDefault();
 
-    const formData = new FormData(this);
+        // Get the file input element and create a FormData object
+        let formData = new FormData();
+        let fileInput = document.getElementById('imageInput');
 
-    fetch('/process', {
-        method: 'POST',
-        body: formData,
-    })
-    .then(response => response.json())
-    .then(data => {
-        const outputSection = document.getElementById('output-section');
-        const outputContainer = document.getElementById('output-container');
-
-        outputContainer.innerHTML = '';
-
-        if (data.type === 'image') {
-            const img = document.createElement('img');
-            img.src = data.output_url;
-            outputContainer.appendChild(img);
-        } else if (data.type === 'video') {
-            const video = document.createElement('video');
-            video.src = data.output_url;
-            video.controls = true;
-            outputContainer.appendChild(video);
+        // Check if a file is selected
+        if (fileInput.files.length === 0) {
+            alert('Please select an image or video to upload!');
+            return;
         }
 
-        outputSection.style.display = 'block';
-    })
-    .catch(error => console.error('Error:', error));
+        // Append the selected file to the FormData object
+        formData.append('file', fileInput.files[0]);
+
+        // Send the file to the Flask backend using a POST request
+        fetch('http://127.0.0.1:5000/process', {  // Flask backend endpoint
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())  // Parse the JSON response from Flask
+        .then(data => {
+            // Check if there was a success message in the response
+            if (data.message) {
+                console.log('Success:', data.message);
+                alert(data.message);
+
+                // Optionally, update the webpage with the processed image
+                // For example, display a processed image if returned by the server
+                if (data.processed_image_url) {
+                    // Update the image source to show the result
+                    document.getElementById('processedImage').src = data.processed_image_url;
+                }
+            } else {
+                alert('Something went wrong. Please try again.');
+            }
+        })
+        .catch(error => {
+            // Catch any errors that occur during the request
+            console.error('Error:', error);
+            alert('An error occurred. Please try again.');
+        });
+    });
 });
