@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reflection Removal</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <h1>Reflection Removal</h1>
+    </header>
+    <main>
+        <section class="upload-section">
+            <h2>Upload Your Image or Video</h2>
+            <form id="upload-form" action="/process" method="post" enctype="multipart/form-data">
+                <label for="file-input">Choose a file:</label>
+                <input type="file" id="file-input" name="file" accept="image/*,video/*" required>
+                <button type="submit">Process</button>
+            </form>
+        </section>
+        <section class="output-section" id="output-section" style="display: none;">
+            <h2>Processed Output</h2>
+            <div id="output-container">
+                <!-- Results will be dynamically inserted here -->
+            </div>
+        </section>
+    </main>
+    <footer>
+        <p>&copy; 2024 Reflection Removal Project</p>
+    </footer>
+    <script src="script.js"></script>
+</body>
+</html>
