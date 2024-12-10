@@ -1,48 +1,39 @@
-// Wait for the document to fully load
-document.addEventListener('DOMContentLoaded', function () {
-    // Set up the form submission handler
-    document.getElementById('uploadForm').addEventListener('submit', function(event) {
-        event.preventDefault();
+document.getElementById('upload-form').addEventListener('submit', function(event) {
+    event.preventDefault(); // Prevent form submission
 
-        // Get the file input element and create a FormData object
-        let formData = new FormData();
-        let fileInput = document.getElementById('imageInput');
+    const fileInput = document.getElementById('media-upload');
+    const file = fileInput.files[0];
 
-        // Check if a file is selected
-        if (fileInput.files.length === 0) {
-            alert('Please select an image or video to upload!');
-            return;
-        }
+    if (file) {
+        const formData = new FormData();
+        formData.append('file', file);
 
-        // Append the selected file to the FormData object
-        formData.append('file', fileInput.files[0]);
-
-        // Send the file to the Flask backend using a POST request
-        fetch('http://127.0.0.1:5000/process', {  // Flask backend endpoint
+        // Send the file to the backend for processing
+        fetch('http://localhost:5000/process', {
             method: 'POST',
             body: formData
         })
-        .then(response => response.json())  // Parse the JSON response from Flask
+        .then(response => response.json())
         .then(data => {
-            // Check if there was a success message in the response
-            if (data.message) {
-                console.log('Success:', data.message);
-                alert(data.message);
-
-                // Optionally, update the webpage with the processed image
-                // For example, display a processed image if returned by the server
-                if (data.processed_image_url) {
-                    // Update the image source to show the result
-                    document.getElementById('processedImage').src = data.processed_image_url;
+            if (data.message === 'Image processed successfully' || data.message === 'Video processed successfully') {
+                if (file.type.startsWith('image')) {
+                    // Display the processed image
+                    const outputImage = document.getElementById('output-image');
+                    outputImage.src = data.processed_image_url;
+                    outputImage.style.display = 'block';
+                } else if (file.type.startsWith('video')) {
+                    // Display the processed video
+                    const outputVideo = document.getElementById('output-video');
+                    outputVideo.src = data.processed_video_url;
+                    outputVideo.style.display = 'block';
                 }
             } else {
-                alert('Something went wrong. Please try again.');
+                alert('Error processing file: ' + data.error);
             }
         })
         .catch(error => {
-            // Catch any errors that occur during the request
             console.error('Error:', error);
-            alert('An error occurred. Please try again.');
+            alert('An error occurred while processing the file.');
         });
-    });
+    }
 });
